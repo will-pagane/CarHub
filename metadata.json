@@ -1,0 +1,6 @@
+{
+  "name": "CarHub",
+  "description": "Um aplicativo para gerenciar abastecimentos, manutenções e despesas do seu veículo com CarHub, com visualizações gráficas detalhadas.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

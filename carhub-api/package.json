@@ -1,0 +1,18 @@
+
+{
+  "name": "carhub-api",
+  "version": "1.0.0",
+  "description": "Backend API for CarHub using Google Cloud Functions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^7.7.0",
+    "google-auth-library": "^9.9.0",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": "18"
+  }
+}
