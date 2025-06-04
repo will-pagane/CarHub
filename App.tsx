@@ -45,6 +45,7 @@ const ADD_FUELING_RECORD_URL = `https://${API_BASE_URL_PLACEHOLDER}/addFuelingRe
 const UPDATE_FUELING_RECORD_URL_TEMPLATE = (recordId: string) => `https://${API_BASE_URL_PLACEHOLDER}/updateFuelingRecord/${recordId}`;
 const DELETE_FUELING_RECORD_URL_TEMPLATE = (recordId: string) => `https://${API_BASE_URL_PLACEHOLDER}/deleteFuelingRecord/${recordId}`;
 
+
 // Maintenance Record Endpoints
 const GET_MAINTENANCE_RECORDS_URL = (vehicleId: string) => `https://${API_BASE_URL_PLACEHOLDER}/getMaintenanceRecords?vehicleId=${vehicleId}`;
 const ADD_MAINTENANCE_RECORD_URL = `https://${API_BASE_URL_PLACEHOLDER}/addMaintenanceRecord`;
