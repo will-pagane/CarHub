@@ -1,0 +1,46 @@
+steps:
+  # 1. Install dependencies
+  # This step uses the official npm builder image from Google Cloud Build.
+  # 'npm ci' is generally faster and more reliable for CI environments than 'npm install'
+  # as it installs directly from package-lock.json and ensures reproducible builds.
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['ci']
+    id: 'Install Dependencies'
+    waitFor: ['-'] # Start immediately
+
+  # 2. Build the Vite application for production
+  # This step also uses the npm builder image.
+  # 'npm run build' executes the 'build' script defined in your frontend's package.json (which is 'vite build').
+  # NODE_ENV=production ensures Vite applies production optimizations.
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['run', 'build']
+    env: ['NODE_ENV=production']
+    id: 'Build Application'
+    waitFor:
+      - 'Install Dependencies' # Wait for dependencies to be installed
+
+  # 3. OPTIONAL: Deploy static assets to Google Cloud Storage
+  # This step uses the gsutil builder to copy the contents of the 'dist' directory (Vite's output)
+  # to your GCS bucket.
+  # - '-m' enables parallel uploads/downloads.
+  # - 'rsync' synchronizes the contents.
+  # - '-r' makes it recursive for directories.
+  # - 'dist' is your Vite build output directory.
+  # - 'gs://personalcarmanagement_cloudbuild/' is your destination GCS bucket.
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['-m', 'rsync', '-r', 'dist', 'gs://personalcarmanagement_cloudbuild/']
+    id: 'Deploy to GCS'
+    waitFor:
+      - 'Build Application' # Wait for the application to be built
+
+# OPTIONAL: Define build artifacts.
+# This tells Cloud Build to store the contents of the 'dist' directory in the specified GCS bucket
+# after a successful build. This can be useful for other services or for manual inspection.
+# artifacts:
+#   objects:
+#     location: 'gs://personalcarmanagement_cloudbuild/' # Your bucket
+#     paths: ['dist/**']
+
+# Set a timeout for the build. Default is 10 minutes (600s).
+# Increased to 20 minutes (1200s) just in case of slower npm operations or larger builds.
+timeout: 1200s
