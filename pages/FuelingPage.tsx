@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { FuelingRecord, Vehicle } from '../types'; 
 import FuelingForm from '../components/FuelingForm';
@@ -11,9 +12,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface FuelingPageProps {
   fuelingRecords: FuelingRecord[]; 
-  addFuelingRecord: (record: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'>) => void;
-  updateFuelingRecord: (id: string, record: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'>) => void;
-  deleteFuelingRecord: (id: string) => void;
+  addFuelingRecord: (record: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'>) => Promise<void>; // Now async
+  updateFuelingRecord: (id: string, record: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'>) => Promise<void>; // Now async
+  deleteFuelingRecord: (id: string) => Promise<void>; // Now async
   activeVehicle?: Vehicle; 
 }
 
@@ -27,6 +28,8 @@ const FuelingPage: React.FC<FuelingPageProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFuelingRecord, setEditingFuelingRecord] = useState<FuelingRecord | null>(null);
   const { currentUser } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const handleOpenModalForNew = () => {
     setEditingFuelingRecord(null);
@@ -39,22 +42,43 @@ const FuelingPage: React.FC<FuelingPageProps> = ({
   };
 
   const handleCloseModal = () => {
+    if (isSubmitting) return; // Prevent closing while submitting
     setIsModalOpen(false);
     setEditingFuelingRecord(null); 
   };
 
-  const handleSubmitForm = (data: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'>) => {
+  const handleSubmitForm = async (data: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'>) => {
     if (!currentUser || !activeVehicle) {
         alert("Usuário ou veículo não ativo. Não é possível salvar.");
         return;
     }
-    if (editingFuelingRecord) {
-      updateFuelingRecord(editingFuelingRecord.id, data);
-    } else {
-      addFuelingRecord(data);
+    setIsSubmitting(true);
+    try {
+        if (editingFuelingRecord) {
+        await updateFuelingRecord(editingFuelingRecord.id, data);
+        } else {
+        await addFuelingRecord(data);
+        }
+        handleCloseModal();
+    } catch (error) {
+        // Error is likely handled globally in App.tsx, but local feedback could be added
+        console.error("Failed to submit fueling form:", error);
+        // alert("Falha ao salvar abastecimento. Verifique os erros no console ou tente novamente.");
+    } finally {
+        setIsSubmitting(false);
     }
-    handleCloseModal();
   };
+
+  const handleDeleteRecord = async (id: string) => {
+    setIsSubmitting(true); // Use isSubmitting to disable buttons during delete
+    try {
+        await deleteFuelingRecord(id);
+    } catch (error) {
+        console.error("Failed to delete fueling record:", error);
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
 
   if (!currentUser) { 
     return (
@@ -89,8 +113,9 @@ const FuelingPage: React.FC<FuelingPageProps> = ({
         </h1>
         <button
           onClick={handleOpenModalForNew}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-150 flex items-center"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-150 flex items-center disabled:opacity-50"
           aria-label="Adicionar novo registro de abastecimento"
+          disabled={isSubmitting}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -143,15 +168,17 @@ const FuelingPage: React.FC<FuelingPageProps> = ({
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-3">
                     <button 
                       onClick={() => handleOpenModalForEdit(record)}
-                      className="text-blue-600 hover:text-blue-500 p-1"
+                      className="text-blue-600 hover:text-blue-500 p-1 disabled:opacity-50"
                       aria-label={`Editar abastecimento de ${new Date(record.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`}
+                      disabled={isSubmitting}
                     >
                       <PencilIcon className="w-5 h-5" />
                     </button>
                     <button 
-                      onClick={() => deleteFuelingRecord(record.id)} 
-                      className="text-red-600 hover:text-red-500 p-1"
+                      onClick={() => handleDeleteRecord(record.id)} 
+                      className="text-red-600 hover:text-red-500 p-1 disabled:opacity-50"
                       aria-label={`Excluir abastecimento de ${new Date(record.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`}
+                      disabled={isSubmitting}
                     >
                        <TrashIcon className="w-5 h-5" />
                     </button>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { MaintenanceRecord, Vehicle } from '../types'; 
 import MaintenanceForm from '../components/MaintenanceForm';
@@ -10,9 +11,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface MaintenancePageProps {
   maintenanceRecords: MaintenanceRecord[]; 
-  addMaintenanceRecord: (record: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'mileage' | 'userId'>) => void;
-  updateMaintenanceRecord: (id: string, record: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'mileage' | 'userId'>) => void;
-  deleteMaintenanceRecord: (id: string) => void;
+  addMaintenanceRecord: (record: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'userId'>) => Promise<void>; // Now async, mileage is optional from form
+  updateMaintenanceRecord: (id: string, record: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'userId'>) => Promise<void>; // Now async
+  deleteMaintenanceRecord: (id: string) => Promise<void>; // Now async
   activeVehicle?: Vehicle; 
 }
 
@@ -26,6 +27,7 @@ const MaintenancePage: React.FC<MaintenancePageProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMaintenanceRecord, setEditingMaintenanceRecord] = useState<MaintenanceRecord | null>(null);
   const { currentUser } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenModalForNew = () => {
     setEditingMaintenanceRecord(null);
@@ -38,22 +40,41 @@ const MaintenancePage: React.FC<MaintenancePageProps> = ({
   };
 
   const handleCloseModal = () => {
+    if (isSubmitting) return;
     setIsModalOpen(false);
     setEditingMaintenanceRecord(null);
   };
 
-  const handleSubmitForm = (data: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'mileage' | 'userId'>) => {
+  const handleSubmitForm = async (data: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'userId'>) => {
     if (!currentUser || !activeVehicle) {
         alert("Usuário ou veículo não ativo. Não é possível salvar.");
         return;
     }
-    if (editingMaintenanceRecord) {
-      updateMaintenanceRecord(editingMaintenanceRecord.id, data);
-    } else {
-      addMaintenanceRecord(data);
+    setIsSubmitting(true);
+    try {
+        if (editingMaintenanceRecord) {
+        await updateMaintenanceRecord(editingMaintenanceRecord.id, data);
+        } else {
+        await addMaintenanceRecord(data);
+        }
+        handleCloseModal();
+    } catch (error) {
+        console.error("Failed to submit maintenance form:", error);
+    } finally {
+        setIsSubmitting(false);
     }
-    handleCloseModal();
   };
+
+  const handleDeleteRecord = async (id: string) => {
+    setIsSubmitting(true);
+    try {
+        await deleteMaintenanceRecord(id);
+    } catch (error) {
+        console.error("Failed to delete maintenance record:", error);
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
   
   if (!currentUser) { 
     return (
@@ -88,8 +109,9 @@ const MaintenancePage: React.FC<MaintenancePageProps> = ({
         </h1>
         <button
           onClick={handleOpenModalForNew}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-150 flex items-center"
+          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-150 flex items-center disabled:opacity-50"
           aria-label="Adicionar novo registro de manutenção"
+          disabled={isSubmitting}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -122,6 +144,7 @@ const MaintenancePage: React.FC<MaintenancePageProps> = ({
                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Custo (R$)</th>
                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Km</th>
                 <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
@@ -133,18 +156,21 @@ const MaintenancePage: React.FC<MaintenancePageProps> = ({
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{record.cost.toFixed(2)}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{record.type}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{record.category}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{record.mileage ? record.mileage.toLocaleString('pt-BR') : '-'}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-3">
                     <button
                       onClick={() => handleOpenModalForEdit(record)}
-                      className="text-blue-600 hover:text-blue-500 p-1"
+                      className="text-blue-600 hover:text-blue-500 p-1 disabled:opacity-50"
                       aria-label={`Editar manutenção: ${record.description}`}
+                      disabled={isSubmitting}
                     >
                       <PencilIcon className="w-5 h-5" />
                     </button>
                     <button 
-                      onClick={() => deleteMaintenanceRecord(record.id)} 
-                      className="text-red-600 hover:text-red-500 p-1"
+                      onClick={() => handleDeleteRecord(record.id)} 
+                      className="text-red-600 hover:text-red-500 p-1 disabled:opacity-50"
                       aria-label={`Excluir manutenção: ${record.description}`}
+                      disabled={isSubmitting}
                     >
                       <TrashIcon className="w-5 h-5" />
                     </button>

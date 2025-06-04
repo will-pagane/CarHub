@@ -1,20 +1,19 @@
 
 
+
+
+
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
-// useLocalStorage removed for main data arrays
 import { FuelingRecord, MaintenanceRecord, Vehicle } from './types';
 import { useAuth } from './contexts/AuthContext';
 import { 
-  // FUELING_RECORDS_KEY, // No longer used for primary storage
-  // MAINTENANCE_RECORDS_KEY, // No longer used for primary storage
   APP_NAME, 
   DEFAULT_VEHICLE_DATA,
-  // VEHICLES_KEY, // No longer used for primary storage
-  ACTIVE_VEHICLE_ID_KEY, // Still used for local UI preference
+  ACTIVE_VEHICLE_ID_KEY, 
   GOOGLE_CLIENT_ID
 } from './constants';
-import useLocalStorage from './hooks/useLocalStorage'; // Keep for activeVehicleId and theme
+import useLocalStorage from './hooks/useLocalStorage'; 
 
 import HomePage from './pages/HomePage';
 import FuelingPage from './pages/FuelingPage';
@@ -32,17 +31,31 @@ import UserCircleIcon from './components/icons/UserCircleIcon';
 import ArrowLeftOnRectangleIcon from './components/icons/ArrowLeftOnRectangleIcon'; 
 
 // --- API Configuration ---
-// !!! IMPORTANT: Replace these with your actual Cloud Function URLs after deployment !!!
-const API_BASE_URL = "YOUR_CLOUD_FUNCTIONS_REGION-YOUR_PROJECT_ID.cloudfunctions.net"; // Example
-const GET_VEHICLES_URL = `https://${API_BASE_URL}/getVehicles`;
-const ADD_VEHICLE_URL = `https://${API_BASE_URL}/addVehicle`;
-const UPDATE_VEHICLE_URL_TEMPLATE = (vehicleId: string) => `https://${API_BASE_URL}/updateVehicle/${vehicleId}`; // Assuming path param for ID
-const DELETE_VEHICLE_URL_TEMPLATE = (vehicleId: string) => `https://${API_BASE_URL}/deleteVehicle/${vehicleId}`; // Assuming path param for ID
-const GET_USER_PREFERENCES_URL = `https://${API_BASE_URL}/getUserPreferences`;
-const SET_USER_PREFERENCES_URL = `https://${API_BASE_URL}/setUserPreferences`;
-// Add URLs for fueling and maintenance later
+// !!! IMPORTANT: Replace YOUR_CLOUD_FUNCTIONS_REGION and YOUR_PROJECT_ID with your actual Cloud Function URLs after deployment !!!
+const API_BASE_URL_PLACEHOLDER = "YOUR_CLOUD_FUNCTIONS_REGION-YOUR_PROJECT_ID.cloudfunctions.net"; // Example: "us-central1-my-carhub-project.cloudfunctions.net"
 
-const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9); // Still useful for optimistic updates if needed
+// Vehicle Endpoints
+const GET_VEHICLES_URL = `https://${API_BASE_URL_PLACEHOLDER}/getVehicles`;
+const ADD_VEHICLE_URL = `https://${API_BASE_URL_PLACEHOLDER}/addVehicle`;
+const UPDATE_VEHICLE_URL_TEMPLATE = (vehicleId: string) => `https://${API_BASE_URL_PLACEHOLDER}/updateVehicle/${vehicleId}`;
+const DELETE_VEHICLE_URL_TEMPLATE = (vehicleId: string) => `https://${API_BASE_URL_PLACEHOLDER}/deleteVehicle/${vehicleId}`;
+
+// User Preferences Endpoints
+const GET_USER_PREFERENCES_URL = `https://${API_BASE_URL_PLACEHOLDER}/getUserPreferences`;
+const SET_USER_PREFERENCES_URL = `https://${API_BASE_URL_PLACEHOLDER}/setUserPreferences`;
+
+// Fueling Record Endpoints
+const GET_FUELING_RECORDS_URL = (vehicleId: string) => `https://${API_BASE_URL_PLACEHOLDER}/getFuelingRecords?vehicleId=${vehicleId}`;
+const ADD_FUELING_RECORD_URL = `https://${API_BASE_URL_PLACEHOLDER}/addFuelingRecord`;
+const UPDATE_FUELING_RECORD_URL_TEMPLATE = (recordId: string) => `https://${API_BASE_URL_PLACEHOLDER}/updateFuelingRecord/${recordId}`;
+const DELETE_FUELING_RECORD_URL_TEMPLATE = (recordId: string) => `https://${API_BASE_URL_PLACEHOLDER}/deleteFuelingRecord/${recordId}`;
+
+// Maintenance Record Endpoints
+const GET_MAINTENANCE_RECORDS_URL = (vehicleId: string) => `https://${API_BASE_URL_PLACEHOLDER}/getMaintenanceRecords?vehicleId=${vehicleId}`;
+const ADD_MAINTENANCE_RECORD_URL = `https://${API_BASE_URL_PLACEHOLDER}/addMaintenanceRecord`;
+const UPDATE_MAINTENANCE_RECORD_URL_TEMPLATE = (recordId: string) => `https://${API_BASE_URL_PLACEHOLDER}/updateMaintenanceRecord/${recordId}`;
+const DELETE_MAINTENANCE_RECORD_URL_TEMPLATE = (recordId: string) => `https://${API_BASE_URL_PLACEHOLDER}/deleteMaintenanceRecord/${recordId}`;
+
 
 interface FeatureCardProps {
   icon: React.ReactElement<{ className?: string }>;
@@ -75,36 +88,33 @@ const LoginScreen: React.FC = () => {
         return;
     }
 
-    // Conditions for attempting to RENDER the button
     if (!authContextIsLoading && !currentUser && !isGsiMisconfigured) {
         if (window.google && window.google.accounts && window.google.accounts.id) {
             try {
-                buttonContainer.innerHTML = ""; // Ensure container is empty before rendering GSI button
+                buttonContainer.innerHTML = ""; 
                 window.google.accounts.id.renderButton(
                     buttonContainer,
                     { theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', logo_alignment: 'left' }
                 );
-                setGsiError(null); // Clear any previous GSI error if button renders successfully
+                setGsiError(null); 
             } catch (error) {
                 console.error("Error rendering Google Sign-In button:", error);
                 setGsiError("Erro ao renderizar o botão de login do Google. Verifique o console.");
-                buttonContainer.innerHTML = ""; // Clear container on error
+                buttonContainer.innerHTML = ""; 
             }
-        } else { // GSI JS API not available when expected
+        } else { 
             console.warn("GSI objects (window.google.accounts.id) not available for button rendering after loading attempt.");
-            // Don't clear buttonContainer.innerHTML here, as status messages might be shown by React based on gsiError
-            if (!window.google?.accounts?.id) { // Only set error if GSI SDK itself seems to have failed loading
+            if (!window.google?.accounts?.id) { 
                 setGsiError("Serviço de login do Google não pôde ser carregado. Tente recarregar a página.");
             }
         }
     } else {
-        // Conditions for CLEARING the button (e.g., user logged in, GSI misconfigured, or auth context is loading)
         buttonContainer.innerHTML = ""; 
-        if (currentUser || isGsiMisconfigured) { // If user is now logged in or GSI is misconfigured, clear any GSI error message
+        if (currentUser || isGsiMisconfigured) { 
             setGsiError(null);
         }
     }
-  }, [authContextIsLoading, currentUser, isGsiMisconfigured, location.key]); // location.key to help re-trigger on navigation if needed
+  }, [authContextIsLoading, currentUser, isGsiMisconfigured, location.key]); 
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-160px)] text-center p-4 sm:p-8 bg-gray-50">
@@ -124,18 +134,14 @@ const LoginScreen: React.FC = () => {
       ) : (
         <>
           <p className="text-gray-700 mb-2 text-lg">Faça login para continuar:</p>
-          {/* This div is EXCLUSIVELY for the Google Sign-In button, managed by useEffect */}
           <div id="googleSignInButtonContainer" className="mt-2 mb-4 flex justify-center min-h-[40px]">
-            {/* Content will be dynamically inserted by GSI or cleared by useEffect. */}
+            {/* Content will be dynamically inserted */}
           </div>
-
-          {/* Separate container for status messages */}
           <div className="min-h-[20px] text-sm mb-10">
             {gsiError && <p className="text-red-500">{gsiError}</p>}
             {!gsiError && authContextIsLoading && !currentUser && (
                 <p className="text-gray-500">Carregando login...</p>
             )}
-            {/* Show "Preparando..." if GSI SDK is loaded, not misconfigured, user not logged in, not loading, no error, and button container is empty */}
             {!gsiError && !authContextIsLoading && !currentUser && !isGsiMisconfigured &&
              window.google?.accounts?.id && 
              document.getElementById('googleSignInButtonContainer') && 
@@ -172,26 +178,28 @@ const App: React.FC = () => {
   const { currentUser, signOut, isLoading: authIsLoading, idToken } = useAuth();
   const navigate = useNavigate();
 
-  // State for data fetched from backend
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
-  // TODO: Initialize fueling and maintenance records similarly when their backend is ready
-  const [allFuelingRecords, setAllFuelingRecords] = useLocalStorage<FuelingRecord[]>(`gvi_fuel_local_cache_${currentUser?.id || 'guest'}`, []); // Temp local cache
-  const [allMaintenanceRecords, setAllMaintenanceRecords] = useLocalStorage<MaintenanceRecord[]>(`gvi_maint_local_cache_${currentUser?.id || 'guest'}`, []); // Temp local cache
-
+  const [allFuelingRecords, setAllFuelingRecords] = useState<FuelingRecord[]>([]);
+  const [allMaintenanceRecords, setAllMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
 
   const [activeVehicleId, setActiveVehicleId] = useLocalStorage<string | null>(ACTIVE_VEHICLE_ID_KEY, null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   
-  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false); // Unified loading state for all data
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // --- API Call Helper ---
   const callApi = useCallback(async (url: string, method: string = 'GET', body?: any) => {
     if (!idToken) {
       setApiError("Usuário não autenticado para realizar a operação.");
       console.error("callApi: idToken is null");
       throw new Error("Usuário não autenticado");
+    }
+    if (API_BASE_URL_PLACEHOLDER === "YOUR_CLOUD_FUNCTIONS_REGION-YOUR_PROJECT_ID.cloudfunctions.net" || API_BASE_URL_PLACEHOLDER === "") {
+        const errorMsg = "Configuração da API pendente. O endereço base da API (API_BASE_URL_PLACEHOLDER) precisa ser definido em App.tsx.";
+        console.error(errorMsg);
+        setApiError(errorMsg);
+        throw new Error(errorMsg);
     }
     const headers: HeadersInit = {
       'Authorization': `Bearer ${idToken}`,
@@ -204,15 +212,15 @@ const App: React.FC = () => {
 
     const response = await fetch(url, config);
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error(`API Error ${response.status}: ${errorData} for URL ${url}`);
-      throw new Error(`Falha na API: ${response.statusText} (${errorData})`);
+      const errorText = await response.text();
+      const errorMsg = `Falha na API (${response.status}): ${response.statusText}. Detalhes: ${errorText}`;
+      console.error(`API Error ${response.status} for URL ${url}: ${errorText}`);
+      throw new Error(errorMsg);
     }
-    if (response.status === 204) return null; // No content for DELETE
+    if (response.status === 204) return null; 
     return response.json();
   }, [idToken]);
 
-  // --- Fetch User Preferences (Active Vehicle ID) ---
   useEffect(() => {
     if (currentUser && idToken) {
       setIsLoadingData(true);
@@ -221,24 +229,18 @@ const App: React.FC = () => {
         .then(data => {
           if (data && data.activeVehicleId) {
             setActiveVehicleId(data.activeVehicleId);
-          } else {
-            // If no preference from backend, keep local or set to null
-            // This logic will be refined when vehicles are loaded
           }
         })
         .catch(err => {
           console.error("Erro ao buscar preferências do usuário:", err);
-          setApiError("Não foi possível carregar suas preferências.");
-          // Don't clear local activeVehicleId on error, user might still use it
+          setApiError(prev => prev ? `${prev}\nNão foi possível carregar suas preferências.` : "Não foi possível carregar suas preferências.");
         })
-        .finally(() => setIsLoadingData(false));
+        .finally(() => setIsLoadingData(false)); // Separate loading for preferences
     } else if (!currentUser) {
-        setActiveVehicleId(null); // Clear on logout
+        setActiveVehicleId(null); 
     }
   }, [currentUser, idToken, callApi, setActiveVehicleId]);
 
-
-  // --- Fetch Vehicles ---
   useEffect(() => {
     if (currentUser && idToken) {
       setIsLoadingData(true);
@@ -246,211 +248,179 @@ const App: React.FC = () => {
       callApi(GET_VEHICLES_URL)
         .then((data: Vehicle[]) => {
           setAllVehicles(data || []);
-          // After vehicles are loaded, set active vehicle
           if (data && data.length > 0) {
             const currentActiveIsValid = data.some(v => v.id === activeVehicleId);
             if (!activeVehicleId || !currentActiveIsValid) {
               const newActiveId = data[0].id;
               setActiveVehicleId(newActiveId);
-              // Save this new default active ID to backend
               callApi(SET_USER_PREFERENCES_URL, 'POST', { activeVehicleId: newActiveId })
                 .catch(err => console.warn("Failed to save initial active vehicle preference:", err));
             }
-          } else { // No vehicles from backend
+          } else { 
              setActiveVehicleId(null);
           }
         })
         .catch(err => {
           console.error("Erro ao buscar veículos:", err);
-          setApiError("Não foi possível carregar seus veículos.");
+          setApiError(prev => prev ? `${prev}\nNão foi possível carregar seus veículos.` : "Não foi possível carregar seus veículos.");
           setAllVehicles([]);
         })
         .finally(() => setIsLoadingData(false));
     } else if (!currentUser) {
-      setAllVehicles([]); // Clear on logout
+      setAllVehicles([]); 
     }
   }, [currentUser, idToken, callApi, activeVehicleId, setActiveVehicleId]);
 
-  // TODO: useEffect to fetch fueling and maintenance records when activeVehicleId and currentUser change
+  // Fetch Fueling and Maintenance records
+  useEffect(() => {
+    if (currentUser && activeVehicleId && idToken) { // Changed dependency from activeVehicle to activeVehicleId
+      setIsLoadingData(true);
+      setApiError(null);
+      Promise.all([
+        callApi(GET_FUELING_RECORDS_URL(activeVehicleId)).catch(err => { // Use activeVehicleId
+          console.error(`Error fetching fueling records for ${activeVehicleId}:`, err);
+          setApiError(prev => prev ? `${prev}\nFalha ao carregar abastecimentos.` : "Falha ao carregar abastecimentos.");
+          return []; 
+        }),
+        callApi(GET_MAINTENANCE_RECORDS_URL(activeVehicleId)).catch(err => { // Use activeVehicleId
+          console.error(`Error fetching maintenance records for ${activeVehicleId}:`, err);
+          setApiError(prev => prev ? `${prev}\nFalha ao carregar manutenções.` : "Falha ao carregar manutenções.");
+          return []; 
+        })
+      ])
+      .then(([fuelingData, maintenanceData]) => {
+        setAllFuelingRecords((fuelingData as FuelingRecord[]) || []);
+        setAllMaintenanceRecords((maintenanceData as MaintenanceRecord[]) || []);
+      })
+      .finally(() => setIsLoadingData(false));
+    } else if (!activeVehicleId) { // Clear records if no activeVehicleId
+      setAllFuelingRecords([]);
+      setAllMaintenanceRecords([]);
+    }
+  }, [currentUser, activeVehicleId, idToken, callApi]); // Changed dependency
 
-  const userVehicles = React.useMemo(() => {
-    // Now directly uses allVehicles fetched from API, filtering by userId is done by backend
-    return allVehicles;
-  }, [allVehicles]);
 
+  const userVehicles = React.useMemo(() => allVehicles, [allVehicles]);
 
   const activeVehicle = React.useMemo(() => {
     if (!currentUser || !activeVehicleId) return undefined;
     return userVehicles.find(v => v.id === activeVehicleId);
   }, [userVehicles, activeVehicleId, currentUser]);
 
-  // --- Fueling and Maintenance records still use local cache for now ---
   const activeFuelingRecords = React.useMemo(() => {
-    if (!activeVehicle || !currentUser) return []; 
-    return allFuelingRecords
-      .filter(r => r.vehicleId === activeVehicle.id && r.userId === currentUser.id) // Keep userId for local cache compatibility
-      .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [allFuelingRecords, activeVehicle, currentUser]);
+    // Already filtered by backend, just sort if needed (backend sorts by date desc already)
+    return allFuelingRecords;
+  }, [allFuelingRecords]);
 
   const activeMaintenanceRecords = React.useMemo(() => {
-    if (!activeVehicle || !currentUser) return []; 
-    return allMaintenanceRecords
-      .filter(r => r.vehicleId === activeVehicle.id && r.userId === currentUser.id) // Keep userId for local cache compatibility
-      .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [allMaintenanceRecords, activeVehicle, currentUser]);
+    // Already filtered by backend, just sort if needed (backend sorts by date desc already)
+    return allMaintenanceRecords;
+  }, [allMaintenanceRecords]);
 
 
-  const calculateKmPerLiter = useCallback((
-    currentRecordToProcess: FuelingRecord, 
-    allRecordsForThisVehicleAndUser: FuelingRecord[]
-  ): number | undefined => {
-    // This logic will move to backend
-    if (!currentRecordToProcess.isFullTank) return undefined;
-    const sortedPreviousRecords = [...allRecordsForThisVehicleAndUser]
-      .filter(r => r.mileage < currentRecordToProcess.mileage && r.id !== currentRecordToProcess.id && new Date(r.date) < new Date(currentRecordToProcess.date)) 
-      .sort((a, b) => b.mileage - a.mileage); 
-    const previousRecord = sortedPreviousRecords[0];
-    if (previousRecord) {
-      const kmDriven = currentRecordToProcess.mileage - previousRecord.mileage;
-      if (kmDriven > 0 && currentRecordToProcess.liters > 0) { 
-        return parseFloat((kmDriven / currentRecordToProcess.liters).toFixed(2));
-      }
-    }
-    return undefined;
-  }, []);
-
-
-  const addFuelingRecord = useCallback((recordData: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'> & { date: string }) => {
+  const addFuelingRecord = async (recordData: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'> & { date: string }) => {
     if (!activeVehicle || !currentUser) {
       alert("Veículo ativo ou usuário não encontrado.");
       return;
     }
-    // TODO: Replace with API call
-    console.warn("addFuelingRecord: API call not implemented yet. Using local cache.");
-    const newRecordBase: FuelingRecord = { 
-      ...recordData, 
-      id: generateId(), 
-      vehicleId: activeVehicle.id, 
-      userId: currentUser.id,
-    };
-    setAllFuelingRecords(prevAllRecords => {
-        let recordsWithNew = [...prevAllRecords, newRecordBase];
-        const finalRecords = recordsWithNew.map(r => {
-            if (r.vehicleId === activeVehicle.id && r.userId === currentUser.id) {
-                const relevantRecordsForCalc = recordsWithNew.filter(
-                    vR => vR.vehicleId === activeVehicle.id && vR.userId === currentUser.id
-                );
-                return { ...r, kmPerLiter: calculateKmPerLiter(r, relevantRecordsForCalc) };
-            }
-            return r; 
-        });
-        return finalRecords;
-    });
-  }, [activeVehicle, currentUser, calculateKmPerLiter, setAllFuelingRecords]);
+    setIsLoadingData(true);
+    setApiError(null);
+    try {
+      const newRecord = await callApi(ADD_FUELING_RECORD_URL, 'POST', { ...recordData, vehicleId: activeVehicle.id }) as FuelingRecord;
+      setAllFuelingRecords(prev => [newRecord, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())); // Add and re-sort
+    } catch (err: any) {
+      setApiError(err.message || "Falha ao adicionar abastecimento.");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
-  const updateFuelingRecord = useCallback((recordId: string, updatedFormData: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'> & { date: string }) => {
-    if (!currentUser) return;
-    // TODO: Replace with API call
-    console.warn("updateFuelingRecord: API call not implemented yet. Using local cache.");
-    setAllFuelingRecords(prevAllRecords => {
-      const recordToUpdate = prevAllRecords.find(r => r.id === recordId && r.userId === currentUser.id);
-      if (!recordToUpdate) return prevAllRecords; 
-      const vehicleIdOfUpdatedRecord = recordToUpdate.vehicleId;
-      const userIdOfUpdatedRecord = recordToUpdate.userId; 
-      const draftRecords = prevAllRecords.map(r => 
-        (r.id === recordId && r.userId === userIdOfUpdatedRecord)
-        ? { ...recordToUpdate, ...updatedFormData, date: updatedFormData.date }
-        : r
-      );
-      const finalProcessedRecords = draftRecords.map(recordInLoop => {
-        if (recordInLoop.vehicleId === vehicleIdOfUpdatedRecord && recordInLoop.userId === userIdOfUpdatedRecord) {
-          const allForThisVehicleAndUser = draftRecords.filter(
-              vR => vR.vehicleId === vehicleIdOfUpdatedRecord && vR.userId === userIdOfUpdatedRecord
-          );
-          return { ...recordInLoop, kmPerLiter: calculateKmPerLiter(recordInLoop, allForThisVehicleAndUser) };
-        }
-        return recordInLoop; 
-      });
-      return finalProcessedRecords;
-    });
-  }, [currentUser, calculateKmPerLiter, setAllFuelingRecords]);
+  const updateFuelingRecord = async (recordId: string, updatedFormData: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'> & { date: string }) => {
+    if (!currentUser || !activeVehicle) return;
+    setIsLoadingData(true);
+    setApiError(null);
+    try {
+      const updatedRecord = await callApi(UPDATE_FUELING_RECORD_URL_TEMPLATE(recordId), 'PUT', { ...updatedFormData, vehicleId: activeVehicle.id }) as FuelingRecord;
+      setAllFuelingRecords(prev => prev.map(r => r.id === recordId ? updatedRecord : r).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    } catch (err: any) {
+      setApiError(err.message || "Falha ao atualizar abastecimento.");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
-  const deleteFuelingRecord = (id: string) => {
+  const deleteFuelingRecord = async (id: string) => {
     if (!currentUser) return;
-    // TODO: Replace with API call
-    console.warn("deleteFuelingRecord: API call not implemented yet. Using local cache.");
     if(window.confirm("Tem certeza que deseja excluir este registro de abastecimento?")) {
-      const recordToDelete = allFuelingRecords.find(r => r.id === id && r.userId === currentUser.id);
-      if (!recordToDelete) return;
-      const vehicleIdOfDeletedRecord = recordToDelete.vehicleId;
-      const userIdOfDeletedRecord = recordToDelete.userId; 
-      setAllFuelingRecords(prevAllRecords => {
-          const recordsAfterDeletion = prevAllRecords.filter(record => 
-            !(record.id === id && record.userId === userIdOfDeletedRecord) 
-          );
-          return recordsAfterDeletion.map(recordInLoop => {
-              if (recordInLoop.vehicleId === vehicleIdOfDeletedRecord && recordInLoop.userId === userIdOfDeletedRecord) {
-                  const allForThisVehicleAndUser = recordsAfterDeletion.filter(
-                      vR => vR.vehicleId === vehicleIdOfDeletedRecord && vR.userId === userIdOfDeletedRecord
-                  );
-                  return { ...recordInLoop, kmPerLiter: calculateKmPerLiter(recordInLoop, allForThisVehicleAndUser) };
-              }
-              return recordInLoop;
-          });
-      });
+      setIsLoadingData(true);
+      setApiError(null);
+      try {
+        await callApi(DELETE_FUELING_RECORD_URL_TEMPLATE(id), 'DELETE');
+        setAllFuelingRecords(prev => prev.filter(r => r.id !== id));
+      } catch (err: any) {
+        setApiError(err.message || "Falha ao excluir abastecimento.");
+      } finally {
+        setIsLoadingData(false);
+      }
     }
   };
   
-  const addMaintenanceRecord = (recordData: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'mileage' | 'userId'> & { date: string }) => {
+  const addMaintenanceRecord = async (recordData: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'userId'> & { date: string }) => {
     if (!activeVehicle || !currentUser) {
       alert("Veículo ativo ou usuário não encontrado.");
       return;
     }
-    // TODO: Replace with API call
-    console.warn("addMaintenanceRecord: API call not implemented yet. Using local cache.");
-    const newRecord: MaintenanceRecord = {
-      ...recordData,
-      id: generateId(),
-      vehicleId: activeVehicle.id,
-      userId: currentUser.id,
-      mileage: undefined, 
-    };
-    setAllMaintenanceRecords(prev => [...prev, newRecord]);
-  };
-
-  const updateMaintenanceRecord = (recordId: string, updatedData: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'mileage' | 'userId'> & { date: string }) => {
-    if (!currentUser) return;
-    // TODO: Replace with API call
-    console.warn("updateMaintenanceRecord: API call not implemented yet. Using local cache.");
-    setAllMaintenanceRecords(prev => 
-      prev.map(record => 
-        (record.id === recordId && record.userId === currentUser.id) 
-        ? { ...record, ...updatedData, date: updatedData.date, mileage: record.mileage } 
-        : record
-      )
-    );
-  };
-
-  const deleteMaintenanceRecord = (id: string) => {
-    if (!currentUser) return;
-    // TODO: Replace with API call
-    console.warn("deleteMaintenanceRecord: API call not implemented yet. Using local cache.");
-    if(window.confirm("Tem certeza que deseja excluir este registro de manutenção?")) {
-      setAllMaintenanceRecords(prev => prev.filter(record => record.id !== id || record.userId !== currentUser.id));
+    setIsLoadingData(true);
+    setApiError(null);
+    try {
+      const newRecord = await callApi(ADD_MAINTENANCE_RECORD_URL, 'POST', { ...recordData, vehicleId: activeVehicle.id }) as MaintenanceRecord;
+      setAllMaintenanceRecords(prev => [newRecord, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    } catch (err: any) {
+      setApiError(err.message || "Falha ao adicionar manutenção.");
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
+  const updateMaintenanceRecord = async (recordId: string, updatedData: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'userId'> & { date: string }) => {
+    if (!currentUser || !activeVehicle) return;
+    setIsLoadingData(true);
+    setApiError(null);
+    try {
+      const updatedRecord = await callApi(UPDATE_MAINTENANCE_RECORD_URL_TEMPLATE(recordId), 'PUT', { ...updatedData, vehicleId: activeVehicle.id }) as MaintenanceRecord;
+      setAllMaintenanceRecords(prev => prev.map(r => r.id === recordId ? updatedRecord : r).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    } catch (err: any) {
+      setApiError(err.message || "Falha ao atualizar manutenção.");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
-  // --- Vehicle CRUD with API ---
+  const deleteMaintenanceRecord = async (id: string) => {
+    if (!currentUser) return;
+    if(window.confirm("Tem certeza que deseja excluir este registro de manutenção?")) {
+      setIsLoadingData(true);
+      setApiError(null);
+      try {
+        await callApi(DELETE_MAINTENANCE_RECORD_URL_TEMPLATE(id), 'DELETE');
+        setAllMaintenanceRecords(prev => prev.filter(r => r.id !== id));
+      } catch (err: any) {
+        setApiError(err.message || "Falha ao excluir manutenção.");
+      } finally {
+        setIsLoadingData(false);
+      }
+    }
+  };
+
   const addVehicle = async (vehicleData: Omit<Vehicle, 'id' | 'userId'>) => {
     if (!currentUser) return;
     setIsLoadingData(true);
     setApiError(null);
     try {
       const newVehicle = await callApi(ADD_VEHICLE_URL, 'POST', vehicleData) as Vehicle;
-      setAllVehicles(prev => [...prev, newVehicle]);
+      setAllVehicles(prev => [...prev, newVehicle].sort((a,b) => a.name.localeCompare(b.name)));
       if (!activeVehicleId || userVehicles.length === 0) { 
-        setActiveVehicleId(newVehicle.id);
+        setActiveVehicleId(newVehicle.id); // Automatically select if it's the first or no active
         await callApi(SET_USER_PREFERENCES_URL, 'POST', { activeVehicleId: newVehicle.id });
       }
     } catch (err: any) {
@@ -468,6 +438,7 @@ const App: React.FC = () => {
       const updatedVehicle = await callApi(UPDATE_VEHICLE_URL_TEMPLATE(vehicleId), 'PUT', updatedData) as Vehicle;
       setAllVehicles(prev => 
         prev.map(vehicle => vehicle.id === vehicleId ? { ...vehicle, ...updatedVehicle } : vehicle)
+          .sort((a,b) => a.name.localeCompare(b.name))
       );
     } catch (err: any) {
       setApiError(err.message || "Falha ao atualizar veículo.");
@@ -490,14 +461,14 @@ const App: React.FC = () => {
       setApiError(null);
       try {
         await callApi(DELETE_VEHICLE_URL_TEMPLATE(vehicleId), 'DELETE');
-        setAllVehicles(prev => prev.filter(v => v.id !== vehicleId));
-        // TODO: Also clear local cache for fueling/maintenance of this vehicle when they are migrated
+        const remainingVehicles = allVehicles.filter(v => v.id !== vehicleId);
+        setAllVehicles(remainingVehicles);
+        // Clear records for the deleted vehicle from local state
         setAllFuelingRecords(prev => prev.filter(r => r.vehicleId !== vehicleId));
         setAllMaintenanceRecords(prev => prev.filter(r => r.vehicleId !== vehicleId));
         
         if (activeVehicleId === vehicleId) {
-           const remainingUserVehicles = allVehicles.filter(v => v.id !== vehicleId); // use state before update
-           const newActiveId = remainingUserVehicles.length > 0 ? remainingUserVehicles[0].id : null;
+           const newActiveId = remainingVehicles.length > 0 ? remainingVehicles[0].id : null;
            setActiveVehicleId(newActiveId);
            await callApi(SET_USER_PREFERENCES_URL, 'POST', { activeVehicleId: newActiveId });
         }
@@ -511,26 +482,25 @@ const App: React.FC = () => {
   
   const selectVehicle = async (vehicleId: string) => {
     if (!currentUser || !allVehicles.some(v => v.id === vehicleId)) return;
-    setActiveVehicleId(vehicleId);
+    setActiveVehicleId(vehicleId); // This will trigger useEffect to load records for the new active vehicle
     setIsMobileMenuOpen(false); 
     setIsProfileMenuOpen(false);
-    // Save preference to backend
-    setApiError(null);
+    setApiError(null); // Clear previous errors on vehicle switch
     try {
       await callApi(SET_USER_PREFERENCES_URL, 'POST', { activeVehicleId: vehicleId });
     } catch (err: any) {
-      // Non-critical error, preference will be saved on next successful vehicle load if needed
       console.warn("Falha ao salvar preferência de veículo ativo no backend:", err.message);
+      // Non-critical, preference might not save, but UI will switch.
+      setApiError(prev => prev ? `${prev}\nAtenção: Não foi possível salvar sua seleção de veículo no servidor.` : "Atenção: Não foi possível salvar sua seleção de veículo no servidor.");
     }
   };
 
   const handleSignOut = () => {
-    console.log("--- App.tsx: handleSignOut called ---"); 
-    signOut(); // AuthContext handles clearing its own state and localStorage
-    // App state related to user data is cleared by useEffects depending on currentUser
+    signOut(); 
     navigate("/"); 
     setIsMobileMenuOpen(false);
     setIsProfileMenuOpen(false);
+    // Other states (allVehicles, allFuelingRecords, etc.) will be cleared by their useEffects when currentUser becomes null
   };
 
   const NavLinkItem: React.FC<{ to: string; children: React.ReactNode; icon: React.ReactNode; onClick?: () => void }> = ({ to, children, icon, onClick }) => {
@@ -562,7 +532,6 @@ const App: React.FC = () => {
   
   const vehicleSelectorId = "vehicle-selector";
 
-  // Initial loading screen while auth is processing
   if (authIsLoading && !currentUser) { 
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
@@ -577,13 +546,12 @@ const App: React.FC = () => {
             </div>
         </nav>
         <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-             { /* If GSI is not misconfigured, show generic loading. Otherwise LoginScreen handles it. */ }
             { GOOGLE_CLIENT_ID as string !== "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com" ? (
                 <div className="text-center p-10">
                     <p className="text-gray-600 text-lg">Carregando sua sessão...</p>
                 </div>
             ) : (
-                 <LoginScreen /> // Show login screen if GSI is misconfigured
+                 <LoginScreen /> 
             )}
         </main>
          <footer className="bg-white text-center p-4 text-sm text-gray-500 border-t border-gray-200">
@@ -672,7 +640,7 @@ const App: React.FC = () => {
                       </p>
                     </div>
                     <button
-                      onClick={handleSignOut} // Direct reference
+                      onClick={handleSignOut} 
                       className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                       role="menuitem"
                     >
@@ -737,7 +705,7 @@ const App: React.FC = () => {
                         </p>
                       </div>
                       <button
-                        onClick={handleSignOut} // Direct reference
+                        onClick={handleSignOut} 
                         className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                         role="menuitem"
                       >
@@ -789,12 +757,27 @@ const App: React.FC = () => {
 
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isLoadingData && (
-            <div className="text-center p-10 text-gray-500">Carregando dados...</div>
+            <div className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-[100]">
+                <div className="text-center p-10 text-gray-600 text-lg">
+                    <svg className="animate-spin h-8 w-8 text-blue-500 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Carregando dados...
+                </div>
+            </div>
         )}
         {apiError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <strong className="font-bold">Erro: </strong>
-                <span className="block sm:inline">{apiError}</span>
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+                <p className="font-bold">Erro na Comunicação com o Servidor</p>
+                <p className="text-sm">{apiError.split('\n').map((line, i) => <span key={i}>{line}<br/></span>)}</p>
+                 <button 
+                    onClick={() => setApiError(null)} 
+                    className="absolute top-0 bottom-0 right-0 px-4 py-3 text-red-700 hover:text-red-900"
+                    aria-label="Fechar alerta de erro"
+                >
+                    <span className="text-2xl">&times;</span>
+                </button>
             </div>
         )}
         {!currentUser ? (
@@ -836,6 +819,9 @@ const App: React.FC = () => {
       </main>
       <footer className="bg-white text-center p-4 text-sm text-gray-500 border-t border-gray-200">
         © {new Date().getFullYear()} {APP_NAME}. {currentUser && `Logado como ${currentUser.name || currentUser.email || 'Usuário'}. `}Todos os direitos reservados.
+        { (API_BASE_URL_PLACEHOLDER === "YOUR_CLOUD_FUNCTIONS_REGION-YOUR_PROJECT_ID.cloudfunctions.net" || API_BASE_URL_PLACEHOLDER === "") && 
+            <p className="text-xs text-red-500 mt-1">Modo de Desenvolvimento: API backend não configurada. Edite App.tsx.</p>
+        }
       </footer>
     </div>
   );

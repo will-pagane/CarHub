@@ -1,3 +1,4 @@
+
 import { FuelType, MaintenanceType, MaintenanceCategory, Vehicle } from './types';
 
 export const APP_NAME = "CarHub";
@@ -9,9 +10,10 @@ export const FUEL_TYPES_OPTIONS = Object.values(FuelType).map(value => ({ value,
 export const MAINTENANCE_TYPE_OPTIONS = Object.values(MaintenanceType).map(value => ({ value, label: value }));
 export const MAINTENANCE_CATEGORY_OPTIONS = Object.values(MaintenanceCategory).map(value => ({ value, label: value }));
 
-export const FUELING_RECORDS_KEY = 'gvi_fuelingRecords_v2'; // Changed key to avoid conflicts with old data structure
-export const MAINTENANCE_RECORDS_KEY = 'gvi_maintenanceRecords_v2'; // Changed key
-export const VEHICLES_KEY = 'gvi_vehicles_v2'; // Changed key
+// Keys for local storage items that are NOT primary data stores anymore, but UI preferences
+// export const FUELING_RECORDS_KEY = 'gvi_fuelingRecords_v2'; // No longer primary data source
+// export const MAINTENANCE_RECORDS_KEY = 'gvi_maintenanceRecords_v2'; // No longer primary data source
+// export const VEHICLES_KEY = 'gvi_vehicles_v2'; // No longer primary data source
 export const ACTIVE_VEHICLE_ID_KEY = 'gvi_activeVehicleId'; 
 export const LOGGED_IN_USER_KEY = 'gvi_loggedInUser';
 export const THEME_KEY = 'carhub_theme';

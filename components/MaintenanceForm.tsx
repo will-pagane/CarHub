@@ -1,15 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { MaintenanceRecord, MaintenanceType, MaintenanceCategory } from '../types';
 import { MAINTENANCE_TYPE_OPTIONS, MAINTENANCE_CATEGORY_OPTIONS } from '../constants';
 
 interface MaintenanceFormProps {
-  onSubmit: (record: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'mileage' | 'userId'> & { date: string }) => void;
+  onSubmit: (record: Omit<MaintenanceRecord, 'id' | 'vehicleId' | 'userId'> & { date: string }) => void; // Mileage is part of the Omit
   initialData?: MaintenanceRecord | null; 
   onClose: () => void;
 }
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ onSubmit, initialData, onClose }) => {
   const [date, setDate] = useState(''); 
+  const [mileage, setMileage] = useState(''); // Mileage is now a string to allow empty input
   const [description, setDescription] = useState('');
   const [cost, setCost] = useState('');
   const [type, setType] = useState<MaintenanceType>(MaintenanceType.PREVENTIVE);
@@ -19,6 +21,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ onSubmit, initialData
   useEffect(() => {
     if (initialData) {
       setDate(initialData.date.substring(0, 10)); 
+      setMileage(initialData.mileage ? String(initialData.mileage) : ''); // Handle null/undefined mileage
       setDescription(initialData.description);
       setCost(String(initialData.cost));
       setType(initialData.type);
@@ -26,6 +29,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ onSubmit, initialData
       setNotes(initialData.notes || '');
     } else {
       setDate(new Date().toLocaleDateString('sv-SE'));
+      setMileage('');
       setDescription('');
       setCost('');
       setType(MaintenanceType.PREVENTIVE);
@@ -46,6 +50,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ onSubmit, initialData
     
     onSubmit({
       date: isoDateString,
+      mileage: mileage ? parseFloat(mileage) : undefined, // Pass as number or undefined
       description,
       cost: parseFloat(cost),
       type,
@@ -63,6 +68,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ onSubmit, initialData
       <div>
         <label htmlFor="maintenanceDate" className={commonLabelClass}>Data *</label>
         <input type="date" id="maintenanceDate" value={date} onChange={(e) => setDate(e.target.value)} className={commonInputClass} required />
+      </div>
+      <div>
+        <label htmlFor="maintenanceMileage" className={commonLabelClass}>Quilometragem (km)</label>
+        <input type="number" id="maintenanceMileage" value={mileage} onChange={(e) => setMileage(e.target.value)} className={commonInputClass} placeholder="Ex: 60000 (Opcional)" step="any" />
       </div>
       <div>
         <label htmlFor="description" className={commonLabelClass}>Descrição *</label>
