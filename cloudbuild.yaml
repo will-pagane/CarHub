@@ -44,3 +44,13 @@ steps:
 # Set a timeout for the build. Default is 10 minutes (600s).
 # Increased to 20 minutes (1200s) just in case of slower npm operations or larger builds.
 timeout: 1200s
+
+# Options for the build execution
+options:
+  logging: CLOUD_LOGGING_ONLY # Use Google Cloud's operations suite logging (formerly Stackdriver)
+  # If you prefer to store logs in a GCS bucket, you would use:
+  # logging: GCS_ONLY
+  # logsBucket: 'gs://YOUR_LOGS_BUCKET_NAME'
+  #
+  # If you have issues with the default regional user owned bucket behavior, you might need:
+  # defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
