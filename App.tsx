@@ -1,8 +1,3 @@
-
-
-
-
-
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { FuelingRecord, MaintenanceRecord, Vehicle } from './types';
