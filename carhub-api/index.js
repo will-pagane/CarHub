@@ -300,21 +300,24 @@ exports.setUserPreferences = (req, res) => {
 
 // Helper function to calculate kmPerLiter
 async function calculateKmPerLiterForRecord(userId, vehicleId, currentRecordData, recordIdToExclude = null) {
+  console.log(`[CF:calculateKmPerLiterForRecord] Input currentRecordData: ${JSON.stringify(currentRecordData)}`);
   if (!currentRecordData.isFullTank || currentRecordData.mileage == null || currentRecordData.liters == null || currentRecordData.liters <= 0) {
+    console.log(`[CF:calculateKmPerLiterForRecord] Skipping calculation: isFullTank is false or missing data.`);
     return null;
   }
 
   let query = firestore
-    .collection('users').doc(userId)
-    .collection('fuelingRecords')
-    .where('vehicleId', '==', vehicleId)
-    .where('isFullTank', '==', true)
-    .where('mileage', '<', currentRecordData.mileage)
-    .orderBy('mileage', 'desc');
+    .collection("users").doc(userId)
+    .collection("fuelingRecords")
+    .where("vehicleId", "==", vehicleId)
+    .where("isFullTank", "==", true)
+    .where("mileage", "<", currentRecordData.mileage)
+    .orderBy("mileage", "desc");
 
   const previousRecordsSnapshot = await query.get();
 
   if (previousRecordsSnapshot.empty) {
+    console.log(`[CF:calculateKmPerLiterForRecord] No previous full tank records found.`);
     return null;
   }
   
@@ -327,14 +330,21 @@ async function calculateKmPerLiterForRecord(userId, vehicleId, currentRecordData
       }
   }
 
-  if (!previousRecordData) return null;
-
+  if (!previousRecordData) {
+    console.log(`[CF:calculateKmPerLiterForRecord] No valid previous record found after exclusion.`);
+    return null;
+  }
+  console.log(`[CF:calculateKmPerLiterForRecord] Found previousRecordData: ${JSON.stringify(previousRecordData)}`);
 
   const kmDriven = currentRecordData.mileage - previousRecordData.mileage;
+  console.log(`[CF:calculateKmPerLiterForRecord] kmDriven: ${kmDriven}`);
 
   if (kmDriven > 0) {
-    return parseFloat((kmDriven / currentRecordData.liters).toFixed(2));
+    const kmPerLiter = parseFloat((kmDriven / currentRecordData.liters).toFixed(2));
+    console.log(`[CF:calculateKmPerLiterForRecord] Calculated kmPerLiter: ${kmPerLiter}`);
+    return kmPerLiter;
   }
+  console.log(`[CF:calculateKmPerLiterForRecord] kmDriven is not positive.`);
   return null;
 }
 
@@ -409,8 +419,8 @@ exports.addFuelingRecord = (req, res) => {
         const snapshot = await docRef.get();
         res.status(201).json(convertTimestampsToISO({ id: snapshot.id, ...snapshot.data() }));
       } catch (error) {
-        console.error(`[CF:addFuelingRecord] Error for user ${userId}:`, error);
-        res.status(500).send('Internal Server Error');
+        console.error(`[CF:addFuelingRecord] Error saving fueling record for user ${userId}:`, error);
+        res.status(500).send("Internal Server Error");
       }
     });
   });
@@ -465,7 +475,7 @@ exports.updateFuelingRecord = (req, res) => {
         res.status(200).json(convertTimestampsToISO({ id: snapshot.id, ...snapshot.data() }));
 
       } catch (error) {
-        console.error(`[CF:updateFuelingRecord] Error for user ${userId}, record ${recordId}:`, error);
+        console.error(`[CF:updateFuelingRecord] Error updating fueling record for user ${userId}, record ${recordId}:`, error);
         res.status(500).send('Internal Server Error');
       }
     });
