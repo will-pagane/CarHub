@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups" />
     <title>CarHub</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,7 +20,50 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+<style>
+  /* Hide spinners from number inputs */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    -moz-appearance: textfield; /* Firefox */
+  }
+
+  /* Make date inputs more clickable and ensure text visibility */
+  input[type="date"] {
+    cursor: pointer;
+    color: #1f2937; /* Ensure text is visible - Tailwind text-gray-800 */
+    min-width: 120px; /* Ensure enough space for date text */
+  }
+  
+  /* Style the calendar picker indicator for better UX */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.7; /* Make it a bit more prominent */
+  }
+  
+  /* Ensure text color consistency within the date input parts for Webkit */
+  input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+  input[type="date"]::-webkit-datetime-edit-text,
+  input[type="date"]::-webkit-datetime-edit-month-field,
+  input[type="date"]::-webkit-datetime-edit-day-field,
+  input[type="date"]::-webkit-datetime-edit-year-field {
+    color: #1f2937; /* Tailwind text-gray-800 */
+    padding: 0 0.25em; /* Add a little padding to internal parts if needed */
+  }
+
+  /* Ensure disabled date inputs have appropriate styling */
+  input[type="date"]:disabled {
+    color: #6b7280; /* Tailwind text-gray-500 */
+    background-color: #f3f4f6; /* Tailwind bg-gray-100 */
+    cursor: not-allowed;
+  }
+  input[type="date"]:disabled::-webkit-calendar-picker-indicator {
+    display: none; /* Hide picker indicator on disabled date inputs */
+  }
+</style>
 </head>
   <body class="bg-gray-50 text-gray-900 transition-colors duration-300">
     <div id="root"></div>

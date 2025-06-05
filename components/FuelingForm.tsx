@@ -3,13 +3,13 @@ import { FuelingRecord, FuelType } from '../types';
 import { FUEL_TYPES_OPTIONS } from '../constants';
 
 interface FuelingFormProps {
-  onSubmit: (record: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'> & { date: string }) => void; 
-  initialData?: FuelingRecord | null; 
+  onSubmit: (record: Omit<FuelingRecord, 'id' | 'kmPerLiter' | 'vehicleId' | 'userId'> & { date: string }) => void;
+  initialData?: FuelingRecord | null;
   onClose: () => void;
 }
 
 const FuelingForm: React.FC<FuelingFormProps> = ({ onSubmit, initialData, onClose }) => {
-  const [date, setDate] = useState(''); 
+  const [date, setDate] = useState('');
   const [mileage, setMileage] = useState('');
   const [fuelType, setFuelType] = useState<FuelType>(FuelType.GASOLINE);
   const [liters, setLiters] = useState('');
@@ -19,7 +19,7 @@ const FuelingForm: React.FC<FuelingFormProps> = ({ onSubmit, initialData, onClos
 
   useEffect(() => {
     if (initialData) {
-      setDate(initialData.date.substring(0, 10)); 
+      setDate(initialData.date.substring(0, 10));
       setMileage(String(initialData.mileage));
       setFuelType(initialData.fuelType);
       setLiters(String(initialData.liters));
@@ -27,7 +27,7 @@ const FuelingForm: React.FC<FuelingFormProps> = ({ onSubmit, initialData, onClos
       setIsFullTank(initialData.isFullTank);
       setStation(initialData.station || '');
     } else {
-      setDate(new Date().toLocaleDateString('sv-SE'));
+      setDate(new Date().toLocaleDateString('sv-SE')); // Format YYYY-MM-DD
       setMileage('');
       setFuelType(FuelType.GASOLINE);
       setLiters('');
@@ -48,7 +48,7 @@ const FuelingForm: React.FC<FuelingFormProps> = ({ onSubmit, initialData, onClos
     const isoDateString = new Date(Date.UTC(year, month - 1, day)).toISOString();
 
     onSubmit({
-      date: isoDateString, 
+      date: isoDateString,
       mileage: parseFloat(mileage),
       fuelType,
       liters: parseFloat(liters),
@@ -56,7 +56,7 @@ const FuelingForm: React.FC<FuelingFormProps> = ({ onSubmit, initialData, onClos
       isFullTank,
       station,
     });
-    onClose(); 
+    onClose();
   };
 
   const commonInputClass = "mt-1 block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900";
@@ -86,14 +86,20 @@ const FuelingForm: React.FC<FuelingFormProps> = ({ onSubmit, initialData, onClos
       </div>
       <div>
         <label htmlFor="cost" className={commonLabelClass}>Custo Total (R$) *</label>
-        <input type="number" id="cost" value={cost} onChange={(e) => setCost(e.target.value)} className={commonInputClass} placeholder="Ex: 200.00" required step="any"/>
+        <input type="number" id="cost" value={cost} onChange={(e) => setCost(e.target.value)} className={commonInputClass} placeholder="Ex: 200.00" required step="any" />
       </div>
       <div>
         <label htmlFor="station" className={commonLabelClass}>Posto (Opcional)</label>
         <input type="text" id="station" value={station} onChange={(e) => setStation(e.target.value)} className={commonInputClass} placeholder="Ex: Posto Shell" />
       </div>
       <div className="flex items-center">
-        <input type="checkbox" id="isFullTank" checked={isFullTank} onChange={(e) => setIsFullTank(e.target.checked)} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+        <input
+          type="checkbox"
+          id="isFullTank"
+          checked={isFullTank}
+          onChange={(e) => setIsFullTank(e.target.checked)}
+          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 accent-blue-500"
+        />
         <label htmlFor="isFullTank" className="ml-2 block text-sm text-gray-700">Completei o tanque</label>
       </div>
       <div className="flex justify-end space-x-3 pt-4">
