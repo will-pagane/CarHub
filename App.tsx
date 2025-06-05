@@ -6,9 +6,11 @@ import {
   APP_NAME,
   DEFAULT_VEHICLE_DATA,
   ACTIVE_VEHICLE_ID_KEY,
-  GOOGLE_CLIENT_ID
+  GOOGLE_CLIENT_ID,
+  API_BASE_URL
 } from './constants';
 import useLocalStorage from './hooks/useLocalStorage';
+import useApi from './hooks/useApi';
 
 import HomePage from './pages/HomePage';
 import FuelingPage from './pages/FuelingPage';
@@ -26,31 +28,24 @@ import UserCircleIcon from './components/icons/UserCircleIcon';
 import ArrowLeftOnRectangleIcon from './components/icons/ArrowLeftOnRectangleIcon';
 
 // --- API Configuration ---
-// !!! IMPORTANT: Replace YOUR_CLOUD_FUNCTIONS_REGION and YOUR_PROJECT_ID with your actual Cloud Function URLs after deployment !!!
-const API_BASE_URL_PLACEHOLDER = "southamerica-east1-personalcarmanagement.cloudfunctions.net"; // Example: "us-central1-my-carhub-project.cloudfunctions.net"
+// Base URL is now provided via environment variable (VITE_API_BASE_URL)
+const GET_VEHICLES_URL = `${API_BASE_URL}/getVehicles`;
+const ADD_VEHICLE_URL = `${API_BASE_URL}/addVehicle`;
+const UPDATE_VEHICLE_URL_TEMPLATE = (vehicleId: string) => `${API_BASE_URL}/updateVehicle/${vehicleId}`;
+const DELETE_VEHICLE_URL_TEMPLATE = (vehicleId: string) => `${API_BASE_URL}/deleteVehicle/${vehicleId}`;
 
-// Vehicle Endpoints
-const GET_VEHICLES_URL = `https://${API_BASE_URL_PLACEHOLDER}/getVehicles`;
-const ADD_VEHICLE_URL = `https://${API_BASE_URL_PLACEHOLDER}/addVehicle`;
-const UPDATE_VEHICLE_URL_TEMPLATE = (vehicleId: string) => `https://${API_BASE_URL_PLACEHOLDER}/updateVehicle/${vehicleId}`;
-const DELETE_VEHICLE_URL_TEMPLATE = (vehicleId: string) => `https://${API_BASE_URL_PLACEHOLDER}/deleteVehicle/${vehicleId}`;
+const GET_USER_PREFERENCES_URL = `${API_BASE_URL}/getUserPreferences`;
+const SET_USER_PREFERENCES_URL = `${API_BASE_URL}/setUserPreferences`;
 
-// User Preferences Endpoints
-const GET_USER_PREFERENCES_URL = `https://${API_BASE_URL_PLACEHOLDER}/getUserPreferences`;
-const SET_USER_PREFERENCES_URL = `https://${API_BASE_URL_PLACEHOLDER}/setUserPreferences`;
+const GET_FUELING_RECORDS_URL = (vehicleId: string) => `${API_BASE_URL}/getFuelingRecords?vehicleId=${vehicleId}`;
+const ADD_FUELING_RECORD_URL = `${API_BASE_URL}/addFuelingRecord`;
+const UPDATE_FUELING_RECORD_URL_TEMPLATE = (recordId: string) => `${API_BASE_URL}/updateFuelingRecord/${recordId}`;
+const DELETE_FUELING_RECORD_URL_TEMPLATE = (recordId: string) => `${API_BASE_URL}/deleteFuelingRecord/${recordId}`;
 
-// Fueling Record Endpoints
-const GET_FUELING_RECORDS_URL = (vehicleId: string) => `https://${API_BASE_URL_PLACEHOLDER}/getFuelingRecords?vehicleId=${vehicleId}`;
-const ADD_FUELING_RECORD_URL = `https://${API_BASE_URL_PLACEHOLDER}/addFuelingRecord`;
-const UPDATE_FUELING_RECORD_URL_TEMPLATE = (recordId: string) => `https://${API_BASE_URL_PLACEHOLDER}/updateFuelingRecord/${recordId}`;
-const DELETE_FUELING_RECORD_URL_TEMPLATE = (recordId: string) => `https://${API_BASE_URL_PLACEHOLDER}/deleteFuelingRecord/${recordId}`;
-
-
-// Maintenance Record Endpoints
-const GET_MAINTENANCE_RECORDS_URL = (vehicleId: string) => `https://${API_BASE_URL_PLACEHOLDER}/getMaintenanceRecords?vehicleId=${vehicleId}`;
-const ADD_MAINTENANCE_RECORD_URL = `https://${API_BASE_URL_PLACEHOLDER}/addMaintenanceRecord`;
-const UPDATE_MAINTENANCE_RECORD_URL_TEMPLATE = (recordId: string) => `https://${API_BASE_URL_PLACEHOLDER}/updateMaintenanceRecord/${recordId}`;
-const DELETE_MAINTENANCE_RECORD_URL_TEMPLATE = (recordId: string) => `https://${API_BASE_URL_PLACEHOLDER}/deleteMaintenanceRecord/${recordId}`;
+const GET_MAINTENANCE_RECORDS_URL = (vehicleId: string) => `${API_BASE_URL}/getMaintenanceRecords?vehicleId=${vehicleId}`;
+const ADD_MAINTENANCE_RECORD_URL = `${API_BASE_URL}/addMaintenanceRecord`;
+const UPDATE_MAINTENANCE_RECORD_URL_TEMPLATE = (recordId: string) => `${API_BASE_URL}/updateMaintenanceRecord/${recordId}`;
+const DELETE_MAINTENANCE_RECORD_URL_TEMPLATE = (recordId: string) => `${API_BASE_URL}/deleteMaintenanceRecord/${recordId}`;
 
 
 interface FeatureCardProps {
@@ -185,37 +180,7 @@ const App: React.FC = () => {
   const [isLoadingData, setIsLoadingData] = useState(false); // Unified loading state for all data
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const callApi = useCallback(async (url: string, method: string = 'GET', body?: any) => {
-    if (!idToken) {
-      setApiError("Usuário não autenticado para realizar a operação.");
-      console.error("callApi: idToken is null");
-      throw new Error("Usuário não autenticado");
-    }
-    if (API_BASE_URL_PLACEHOLDER === "YOUR_CLOUD_FUNCTIONS_REGION-YOUR_PROJECT_ID.cloudfunctions.net" || API_BASE_URL_PLACEHOLDER === "") {
-      const errorMsg = "Configuração da API pendente. O endereço base da API (API_BASE_URL_PLACEHOLDER) precisa ser definido em App.tsx.";
-      console.error(errorMsg);
-      setApiError(errorMsg);
-      throw new Error(errorMsg);
-    }
-    const headers: HeadersInit = {
-      'Authorization': `Bearer ${idToken}`,
-      'Content-Type': 'application/json'
-    };
-    const config: RequestInit = { method, headers };
-    if (body) {
-      config.body = JSON.stringify(body);
-    }
-
-    const response = await fetch(url, config);
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMsg = `Falha na API (${response.status}): ${response.statusText}. Detalhes: ${errorText}`;
-      console.error(`API Error ${response.status} for URL ${url}: ${errorText}`);
-      throw new Error(errorMsg);
-    }
-    if (response.status === 204) return null;
-    return response.json();
-  }, [idToken]);
+  const { callApi } = useApi();
 
   useEffect(() => {
     if (currentUser && idToken) {
@@ -235,7 +200,7 @@ const App: React.FC = () => {
     } else if (!currentUser) {
       setActiveVehicleId(null);
     }
-  }, [currentUser, idToken, callApi, setActiveVehicleId]);
+  }, [currentUser, callApi, setActiveVehicleId]);
 
   useEffect(() => {
     if (currentUser && idToken) {
@@ -265,7 +230,7 @@ const App: React.FC = () => {
     } else if (!currentUser) {
       setAllVehicles([]);
     }
-  }, [currentUser, idToken, callApi, activeVehicleId, setActiveVehicleId]);
+  }, [currentUser, callApi, activeVehicleId, setActiveVehicleId]);
 
   // Fetch Fueling and Maintenance records
   useEffect(() => {
@@ -293,7 +258,7 @@ const App: React.FC = () => {
       setAllFuelingRecords([]);
       setAllMaintenanceRecords([]);
     }
-  }, [currentUser, activeVehicleId, idToken, callApi]); // Changed dependency
+  }, [currentUser, activeVehicleId, callApi]);
 
 
   const userVehicles = React.useMemo(() => allVehicles, [allVehicles]);
@@ -814,9 +779,9 @@ const App: React.FC = () => {
       </main>
       <footer className="bg-white text-center p-4 text-sm text-gray-500 border-t border-gray-200">
         © {new Date().getFullYear()} {APP_NAME}. {currentUser && `Logado como ${currentUser.name || currentUser.email || 'Usuário'}. `}Todos os direitos reservados.
-        {(API_BASE_URL_PLACEHOLDER === "YOUR_CLOUD_FUNCTIONS_REGION-YOUR_PROJECT_ID.cloudfunctions.net" || API_BASE_URL_PLACEHOLDER === "") &&
-          <p className="text-xs text-red-500 mt-1">Modo de Desenvolvimento: API backend não configurada. Edite App.tsx.</p>
-        }
+        {!API_BASE_URL && (
+          <p className="text-xs text-red-500 mt-1">Modo de Desenvolvimento: API backend não configurada.</p>
+        )}
       </footer>
     </div>
   );

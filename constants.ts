@@ -3,6 +3,9 @@ import { FuelType, MaintenanceType, MaintenanceCategory, Vehicle } from './types
 
 export const APP_NAME = "CarHub";
 
+// Base URL for API calls, configured via environment variable in Vite
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined || "";
+
 // IMPORTANT: Replace with your actual Google Client ID
 export const GOOGLE_CLIENT_ID = "520857717970-nlkvdonk9f42df8nlmomsodo13n688o6.apps.googleusercontent.com"; 
 
