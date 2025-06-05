@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="#2563EB"/> <!-- Cor azul similar ao Tailwind blue-600 -->
+  
+  <!-- Corpo do Carro (parte inferior) -->
+  <rect x="6" y="17" width="20" height="5" rx="1" fill="white"/>
+  
+  <!-- Teto/Cabine do Carro (com topo arredondado) -->
+  <path d="M9 17 V12.5 A1.5 1.5 0 0 1 10.5 11 H21.5 A1.5 1.5 0 0 1 23 12.5 V17 Z" fill="white"/>
+  
+  <!-- Rodas -->
+  <rect x="8" y="21" width="5" height="4" rx="1.5" fill="white"/>
+  <rect x="19" y="21" width="5" height="4" rx="1.5" fill="white"/>
+</svg>
