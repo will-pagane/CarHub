@@ -1,6 +1,3 @@
-
-
-
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { GoogleUser } from '../types';
 import { GOOGLE_CLIENT_ID, LOGGED_IN_USER_KEY, ACTIVE_VEHICLE_ID_KEY } from '../constants';
@@ -91,7 +88,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           callback: handleCredentialResponse,
           auto_select: false, 
           ux_mode: 'popup',
-          cancel_on_tap_outside: true,
+          allowed_parent_origin: 'http://localhost:5173',
+          origin: 'http://localhost:5173',
+          itp_support: true
         });
         console.log("AuthContext: GSI initialized successfully.");
         setIsLoading(false); 
